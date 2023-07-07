@@ -6,33 +6,42 @@ const authMiddleware = require("../middlewares/auth-middleware");
 
 
 router.get('/profiles/:login_id', authMiddleware, async (req, res) => {
-  const { login_id } = req.params;
-  const { user_id } = res.locals.user;
+  try {
+    const { login_id } = req.params;
+    const { user_id } = res.locals.user;
 
-  const user = await Users.findOne({
-    attributes: ["login_id", "nickname", "email", "myphoto", "mySNS", "introduction"],
-    where: { User_id: user_id }
-  });
+    const profiles = await Users.findOne({
+      attributes: ["login_id", "nickname", "email", "myphoto", "mySNS", "introduction"],
+      where: { User_id: user_id }
+    });
 
-  if (!user) {
-    return res.json({ message: "피드가 존재하지 않습니다." });
+    // 유효한 사용자가 아닌 경우
+    if (!profiles) {
+      return res.json({ message: "피드가 존재하지 않습니다." });
+    }
+
+    // 권한이 없는 경우
+    if (profiles.login_id !== login_id) {
+      return res.status(403).json({ message: "프로필을 조회할 권한이 없습니다." });
+    }
+
+    // 프로필 결과 전송
+    // const profile_results = {
+    //   login_id: user.login_id,
+    //   nickname: user.nickname,
+    //   email: user.email,
+    //   myphoto: user.myphoto,
+    //   mySNS: user.mySNS,
+    //   introduction: user.introduction
+    // };
+
+    return res.status(200).json({ data: profiles });
+  } catch (error) {
+    console.error('프로필 조회 중에 오류가 발생했습니다:', error); // 콘솔 에러 로그 출력
+    res.status(500).json({ message: "프로필 조회 중에 오류가 발생했습니다." });
+    console.log(error);
   }
-
-  if (user.login_id !== login_id) {
-    return res.status(403).json({ message: "프로필을 조회할 권한이 없습니다." });
-  }
-
-  // const profile_results = [{
-  //   login_id: user.login_id,
-  //   nickname: user.nickname,
-  //   age: profile.age,
-  //   email: profile.email,
-  //   introduction: profile.introduction
-  // }];
-
-  // res.status(200).json({ profile_results });
 });
-
 
 
 
@@ -40,7 +49,7 @@ router.get('/profiles/:login_id', authMiddleware, async (req, res) => {
 router.put('/profiles/:login_id', authMiddleware, async (req, res) => {
   const { login_id } = req.params;
   const { user_id } = res.locals.user;
-  const { password, nickname , myphoto, mySNS, introduction, newPassword, confirmPassword } = req.body;
+  const { password, nickname , email, myphoto, mySNS, introduction, newPassword, confirmPassword } = req.body;
 
   const user = await Users.findOne({
     where: { user_id }
@@ -103,6 +112,7 @@ router.put('/profiles/:login_id', authMiddleware, async (req, res) => {
     console.error('프로필 수정 중에 오류가 발생했습니다:', error); // 콘솔 에러 로그 출력
     res.status(500).json({ message: "프로필 수정 중에 오류가 발생했습니다." });
   }
+  // console.log(error);
 });
 
 module.exports = router;
