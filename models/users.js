@@ -3,7 +3,7 @@ const {
   Model
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  class users extends Model {
+  class Users extends Model {
     /**
      * Helper method for defining associations.
      * This method is not a part of Sequelize lifecycle.
@@ -11,15 +11,15 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
 
-      this.hasMany(models.posts, { // 2. posts 모델에게 1:N 관계 설정을 합니다.
-        sourceKey: 'User_id', // 3. user 모델의 User_Id 컬럼을
-        foreignKey: 'User_id', // 4. post 모델의 User_Id 컬럼과 연결합니다.
+      this.hasMany(models.Posts, { // 2. Posts 모델에게 1:N 관계 설정을 합니다.
+        sourceKey: 'user_id', // 3. Users 모델의 userId 컬럼을
+        foreignKey: 'User_id', // 4. Posts 모델의 UserId 컬럼과 연결합니다.
+
       });
     }
   }
-
-  users.init({
-    User_id: {
+  Users.init({
+    user_id: {
       allowNull: false,
       autoIncrement: true,
       primaryKey: true,
@@ -34,15 +34,15 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       type: DataTypes.STRING
     },
-    email: {
-      allowNull: false,
-      type: DataTypes.STRING,
-      unique: true
-    },
     nickname: {
       allowNull: false,
       type: DataTypes.STRING,
       unique: true
+    },
+    email: {
+      allowNull: false,
+      type: DataTypes.STRING,
+      unique: true 
     },
     myphoto: {
       allowNull: true,
@@ -53,7 +53,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING
     },
     introduction: {
-      allowNull: true,
+      allowNull: false,
       type: DataTypes.STRING
     },
     createdAt: {
@@ -68,7 +68,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {
     sequelize,
-    modelName: 'users',
+    modelName: 'Users',
   });
-  return users;
+  return Users;
 };

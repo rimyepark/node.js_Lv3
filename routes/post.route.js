@@ -1,6 +1,6 @@
 const express = require("express");
 const { Op } = require("sequelize");
-const { posts } = require("../models");
+const { Posts } = require("../models");
 const authMiddleware = require("../middlewares/auth-middleware");
 const router = express.Router();
 
@@ -8,7 +8,7 @@ const router = express.Router();
 // 게시글 조회 api
 router.get("/posts", async (req, res) => {
     try {
-        const posts = await posts.findAll({
+        const posts = await Posts.findAll({
             attributes: ['post_id', 'user_id', 'title', 'content', 'createdAt'],
             order: [['createdAt', 'DESC']]
         });
@@ -39,7 +39,7 @@ router.get("/posts", async (req, res) => {
 router.get("/posts/:post_id", async (req, res) => {
     try {
         const { post_id } = req.params;
-        const posts = await posts.findOne({
+        const posts = await Posts.findOne({
             attributes: ['post_id', 'user_id', 'title', 'content', 'createdAt'],
             where: { post_id }
         });
@@ -60,7 +60,7 @@ router.post("/posts", authMiddleware, async (req, res) => {
     //게시글을 생성하는 사용자의 정보를 가지고 올 것.
     const { user_id } = res.locals.user;
     const { title, content } = req.body;
-    const posts = await posts.findOne({ where: user_id });
+    const posts = await Posts.findOne({ where: user_id });
 
     try {
         //유효성 검사
@@ -80,7 +80,7 @@ router.post("/posts", authMiddleware, async (req, res) => {
         }
 
         // 새로운 게시물 생성
-        const createPost = await posts.create({
+        const createPost = await Posts.create({
             User_id: user_id,
             title,
             content
@@ -109,7 +109,7 @@ router.put("/posts/:post_id", authMiddleware, async (req, res) => {
 
     try {
         // 수정할 게시글 조회
-        const post = await posts.findOne({ where: { post_id } });
+        const post = await Posts.findOne({ where: { post_id } });
         // 게시글이 존재하지 않을 경우 또는 유저아이디가 맞지 않을 경우 에러 메시지를 보냄
         if (!post) {
             return res.status(404).json({ message: "게시글이 존재하지 않습니다." });
@@ -117,7 +117,7 @@ router.put("/posts/:post_id", authMiddleware, async (req, res) => {
             return res.status(401).json({ message: "권한이 없습니다." });
         }
         // 게시글의 권한을 확인, 게시글을 수정
-        await posts.update(
+        await Posts.update(
             { title, content }, // title, game_title, genre, content 수정
             {
                 where: {
@@ -145,7 +145,7 @@ router.delete("/posts/:post_id", authMiddleware, async (req, res) => {
     const { user_id } = res.locals.user;
     try {
         // 삭제할 게시글 조회
-        const post = await posts.findOne({ where: { post_id } });
+        const post = await Posts.findOne({ where: { post_id } });
 
         if (!post) {
             return res.status(404).json({ message: "게시글이 존재하지 않습니다." });
@@ -154,7 +154,7 @@ router.delete("/posts/:post_id", authMiddleware, async (req, res) => {
         }
 
         // 게시글 삭제 권한을 확인, 게시글 삭제
-        await posts.destroy({
+        await Posts.destroy({
             where: {
                 [Op.and]: [{ post_id }, { User_id: user_id }]
             }

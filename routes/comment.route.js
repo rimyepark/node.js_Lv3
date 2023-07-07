@@ -1,22 +1,17 @@
 const express = require("express");
 const { Op } = require("sequelize");
-const { posts, comments, users } = require("../models");
+const { Posts, Comments, Users } = require("../models");
 const authMiddleware = require("../middlewares/auth-middleware");
 const router = express.Router();
+
 
 // 댓글 작성 API (authMiddleware: 사용자 인증)
 router.post("/posts/:post_id/comments", authMiddleware, async (req, res) => {
   const { user_id } = res.locals.user;
   const { post_id } = req.params;
-  const { nickname, comment } = req.body;
+  const { comment } = req.body;
 
   try {
-    // 게시글 조회
-    const post = await posts.findOne({ where: { post_id } });
-    if (!post) {
-      return res.status(404).json({ message: "게시글이 존재하지 않습니다." });
-    }
-
     // 댓글 데이터 유효성 검사
     if (!comment || typeof comment !== "string") {
       return res
@@ -25,7 +20,7 @@ router.post("/posts/:post_id/comments", authMiddleware, async (req, res) => {
     }
 
     // 새로운 댓글 작성
-    await comments.create({
+    await Comments.create({
       User_id: user_id,
       Post_id: post_id,
       comment,
@@ -51,29 +46,24 @@ router.post("/posts/:post_id/comments", authMiddleware, async (req, res) => {
   }
 });
 
+
 // 댓글 조회 API
 router.get("/posts/:post_id/comments", async (req, res) => {
   const { post_id } = req.params;
 
   try {
     // 댓글 조회
-    const comments = await comments.findAll({
-      attributes:['comment','comment_id'],
+    //조회할 때 닉네임도 같이 조회가 되게 만들었다.
+    const comments = await Comments.findAll({
+      attributes: ["comment_id", "comment"],
+      include: [
+        {
+          model: Users,
+          attributes: ["nickname"],
+        },
+      ],
       where: { Post_id: post_id },
     });
-
-    // if (comments.length !== 0) {
-    //   const results = comments.map(comments => {
-  
-    //     return {
-    //       comment: comments.comment,
-    //       commentId: comments.comment_id
-    //     };
-    //   });
-    //   res.status(200).json({ results })
-    // } else {
-    //   res.json({ message: "댓글이 존재하지 않습니다." });
-    // }
 
     return res.status(200).json(comments);
   } catch (error) {
@@ -90,7 +80,7 @@ router.get("/comments/:comment_id", async (req, res) => {
 
   try {
     // 댓글 조회
-    const comment = await comments.findOne({
+    const comment = await Comments.findOne({
       where: { comment_id },
     });
 
@@ -109,14 +99,14 @@ router.get("/comments/:comment_id", async (req, res) => {
 });
 
 // 댓글 수정 API (authMiddleware: 사용자 인증)
-router.put("/comments/:comment_id", authMiddleware, async (req, res) => {
+router.put("/posts/:post_id/comments/:comment_id", authMiddleware, async (req, res) => {
   const { user_id } = res.locals.user;
   const { comment_id } = req.params;
   const { comment } = req.body;
 
   try {
     // 댓글 조회
-    const existingComment = await comments.findOne({ where: { comment_id } });
+    const existingComment = await Comments.findOne({ where: { comment_id } });
     if (!existingComment) {
       return res.status(404).json({ message: "댓글이 존재하지 않습니다." });
     }
@@ -129,7 +119,7 @@ router.put("/comments/:comment_id", authMiddleware, async (req, res) => {
     }
 
     // 댓글 수정
-    await comments.update({ comment }, { where: { comment_id } });
+    await Comments.update({ comment }, { where: { comment_id } });
 
     return res.status(200).json({ message: "댓글 수정에 성공하였습니다." });
   } catch (error) {
@@ -141,13 +131,13 @@ router.put("/comments/:comment_id", authMiddleware, async (req, res) => {
 });
 
 // 댓글 삭제 API (authMiddleware: 사용자 인증)
-router.delete("/comments/:comment_id", authMiddleware, async (req, res) => {
+router.delete("/posts/:post_id/comments/:comment_id", authMiddleware, async (req, res) => {
   const { user_id } = res.locals.user;
   const { comment_id } = req.params;
 
   try {
     // 댓글 조회
-    const existingComment = await comments.findOne({ where: { comment_id } });
+    const existingComment = await Comments.findOne({ where: { comment_id } });
     if (!existingComment) {
       return res.status(404).json({ message: "댓글이 존재하지 않습니다." });
     }
@@ -160,7 +150,7 @@ router.delete("/comments/:comment_id", authMiddleware, async (req, res) => {
     }
 
     // 댓글 삭제
-    await comments.destroy({ where: { comment_id } });
+    await Comments.destroy({ where: { comment_id } });
 
     return res.status(200).json({ message: "댓글 삭제에 성공하였습니다." });
   } catch (error) {

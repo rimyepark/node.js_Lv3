@@ -1,15 +1,15 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const {users} = require("../models");
+const {Users} = require("../models");
 const authMiddleware = require("../middlewares/auth-middleware");
 const router = express.Router();
 
 
 //회원가입 API
 router.post("/signup", async(req, res) => {
-    const{login_id, password, confirmPassword, nickname, email, myphoto, mySNS, introduction } =req.body;
-    console.log(users);
-    const isExitsUser = await users.findOne({
+    const{login_id, password, confirmPassword, nickname, myphoto ,mySNS,  email, introduction} =req.body;
+    console.log(Users);
+    const isExitsUser = await Users.findOne({
         where: {
             login_id: login_id,
         }
@@ -21,14 +21,14 @@ router.post("/signup", async(req, res) => {
     }
 
     //사용자 테이블에 데이터 삽입
-    const user = await users.create({login_id,password,nickname,email, myphoto, mySNS, introduction});
+    const user = await Users.create({login_id,password,nickname, myphoto ,mySNS, email, introduction});
 
     return res.status(201).json({ message: "회원가입이 완료되었습니다."})
 })
 // 로그인 API
 router.post("/login", async(req,res)=> {
     const { login_id, password} = req.body;
-    const user = await users.findOne({
+    const user = await Users.findOne({
         where: {login_id}
     });
 
@@ -51,7 +51,7 @@ router.post("/login", async(req,res)=> {
 router.get("/login", authMiddleware ,async(req,res)=> {
     const { user_id } = res.locals.user;
     console.log(user_id);
-    const user = await users.findOne({
+    const user = await Users.findOne({
         where:{user_id}
     });
     

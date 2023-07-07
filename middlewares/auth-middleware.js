@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const { users } = require("../models");
+const { Users } = require("../models");
 
 module.exports = async (req, res, next) => {
   try {
@@ -11,8 +11,8 @@ module.exports = async (req, res, next) => {
 
     const decodedToken = jwt.verify(token, "customized_secret_key");
     const user_id = decodedToken.user_id;
-    const user = await users.findOne({ where: { user_id } });
-
+    const user = await Users.findOne({ where: { user_id } });
+    
     if (!user) {
       res.clearCookie("Authorization");
       return res.status(401).json({ message: "토큰 사용자가 존재하지 않습니다." });
@@ -26,4 +26,4 @@ module.exports = async (req, res, next) => {
       message: "비정상적인 요청입니다."
     });
   }
-};
+}
