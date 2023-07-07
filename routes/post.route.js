@@ -1,8 +1,9 @@
 const express = require("express");
 const { Op } = require("sequelize");
-const { Posts } = require("../models");
+const { Posts, Likes, Users } = require("../models");
 const authMiddleware = require("../middlewares/auth-middleware");
 const router = express.Router();
+const models = require('../models');
 
 
 // 게시글 조회 api
@@ -11,23 +12,9 @@ router.get("/posts", async (req, res) => {
         const posts = await Posts.findAll({
             attributes: ['post_id', 'user_id', 'title', 'content', 'createdAt'],
             order: [['createdAt', 'DESC']]
-        });
-
-        // if (posts.length !== 0) {
-        //     const results = posts.map(post => {
-        
-        //       return {
-        //         postId: post.post_id,
-        //         title: post.title,
-        //         content: post.content,
-        //       };
-        //     });
-        //     res.status(200).json({ results })
-        //   } 
-        //   else {
-        //     res.json({ message: "피드가 존재하지 않습니다." });
-        //   }
-
+           
+            });
+            
         return res.status(200).json({ data: posts });
     } catch (error) {
         console.error(error);
@@ -41,6 +28,13 @@ router.get("/posts/:post_id", async (req, res) => {
         const { post_id } = req.params;
         const posts = await Posts.findOne({
             attributes: ['post_id', 'user_id', 'title', 'content', 'createdAt'],
+            include: [
+                {
+                  model: Users,
+                  attributes: ["nickname"],
+                },
+              ],
+            
             where: { post_id }
         });
             if (posts.length !== 0) {
@@ -171,5 +165,93 @@ router.delete("/posts/:post_id", authMiddleware, async (req, res) => {
 })
 
 
+//좋아요!
 
+router.post('/posts/:post_id/likes', authMiddleware, async (req, res) => {
+    const { post_id } = req.params;
+    const { user_id } = res.locals.user;
+  
+    try {
+      // 게시물 조회
+      const post = await Posts.findOne({ where: { post_id } });
+      if (!post) {
+        return res.status(404).json({ message: '게시물이 존재하지 않습니다.' });
+      }console.log(post);
+  
+      // 이미 좋아요한 게시물인지 확인
+      const existingLike = await Likes.findOne({ where: { post_id, user_id } });
+      if (existingLike) {
+        return res.status(400).json({ message: '이미 좋아요한 게시물입니다.' });
+      }console.log(existingLike);
+  
+      // 좋아요 추가
+      await Likes.create({ post_id, user_id });
+      // 해당 게시물의 likes 값을 1 증가시킴
+      await post.increment('likes', { by: 1 });
+  
+      return res.status(200).json({ message: '게시물에 좋아요를 추가했습니다.' });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: '좋아요 추가 중에 오류가 발생했습니다.' });
+    }
+  });
+
+  //좋아요 취소
+
+  router.delete('/posts/:post_id/likes', authMiddleware, async (req, res) => {
+    const { post_id } = req.params;
+    const { user_id } = res.locals.user;
+  
+    try {
+      // 게시물 조회
+      const post = await Posts.findOne({ where: { post_id } });
+      if (!post) {
+        return res.status(404).json({ message: '게시물이 존재하지 않습니다.' });
+      }
+  
+      // 좋아요한 게시물인지 확인
+      const existingLike = await Likes.findOne({ where: { post_id, user_id } });
+      if (!existingLike) {
+        return res.status(400).json({ message: '좋아요하지 않은 게시물입니다.' });
+      }
+  
+      // 좋아요 취소
+      await existingLike.destroy();
+  
+      return res.status(200).json({ message: '게시물의 좋아요를 취소했습니다.' });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: '좋아요 취소 중에 오류가 발생했습니다.' });
+    }
+  });
+
+ //좋아요 조회! 닉네임도 포함!
+ router.get('/posts/:post_id/likes', async (req, res) => {
+    const { post_id } = req.params;
+  
+    try {
+      // 게시물 조회
+      const post = await Posts.findOne({ where: { post_id } });
+      if (!post) {
+        return res.status(404).json({ message: '게시물이 존재하지 않습니다.' });
+      }
+  
+      // 좋아요 목록 조회
+      const likes = await Likes.findAll({ where: { post_id }, include: [models.Users] });
+  
+      // 좋아요 총 갯수 계산
+      const totalLikes = likes.length;
+  
+      // 좋아요 한 사용자들의 닉네임 가져오기
+      const usernames = likes.map((like) => like.User.nickname);
+  
+      return res.status(200).json({ totalLikes, usernames });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: '좋아요 조회 중에 오류가 발생했습니다.' });
+    }
+  });
+  
+  
+  
 module.exports = router;
